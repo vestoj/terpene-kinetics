@@ -5,6 +5,28 @@ date: "10/2/2020"
 output: html_document
 ---
 
-```{r setup, include=FALSE}
+```{r setup, include=FALSE, warning=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
 ```
+
+Step #1 import data
+
+```{r, message=FALSE}
+methanolysis_data <- read_csv("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/data/methanolysis_data.csv")
+#note make sure to confirm the path each time!
+methanolysis_data
+```
+
+Step #2 determine concentration of ISTD in NMR sample
+
+Note: the internal standard used was 1-Bromo-4-chlorobenzene, the procedure was consistently to add the mg amount (reported in data file) to 1 mL of MeOD, then to add .1 mL of the ISTD solution to 5 mL of MeOD w/ carene nitrate. The MW of the ISTD is 191.45 g/mol. 
+
+```{r}
+ISTD_MW <- 191.45 #(g/mol)
+dilution_factor <- .1/6.1# volume of ISTD added over total volume of sample (no units: mL/mL)
+
+methanolysis_data %>% mutate(
+  ISTD_conc = ISTD_mg_mL/ISTD_MW*dilution_factor*1000) #(mmol/L) Note: mg/mL=g/L, the 1000 is to convert M into mM
+```
+
