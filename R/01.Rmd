@@ -27,6 +27,11 @@ ISTD_MW <- 191.45 #(g/mol)
 dilution_factor <- .1/6.1# volume of ISTD added over total volume of sample (no units: mL/mL)
 
 methanolysis_data %>% mutate(
-  ISTD_conc = ISTD_mg_mL/ISTD_MW*dilution_factor*1000) #(mmol/L) Note: mg/mL=g/L, the 1000 is to convert M into mM
+  ISTD_conc = ISTD_mg_mL/ISTD_MW*dilution_factor*1000)%>% #(mmol/L) Note: mg/mL=g/L, the 1000 is to convert M into mM
+  select(-ISTD_mg_mL) #removing no longer necessary column
+
+remove(dilution_factor, ISTD_MW) #cleaning environment
 ```
+Step #3: Correcting integration
+
 
