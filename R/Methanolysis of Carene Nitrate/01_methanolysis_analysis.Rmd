@@ -1,0 +1,132 @@
+---
+title: "Untitled"
+author: "James Vesto"
+date: "10/2/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(magick)
+library(cowplot)
+library(modelr)
+library(lubridate)
+library(grid)
+```
+Step #1 import data
+
+```{r, message=FALSE}
+methanolysis_data <- read_csv("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/data/RKL-04-35zg2d.csv")
+#note make sure to confirm the path each time!
+methanolysis_data
+```
+
+Step #2 determine concentration of ISTD in NMR sample
+
+Note: the internal standard used was 1-Bromo-4-chlorobenzene, the procedure was consistently to add the mg amount (reported in data file) to 1 mL of MeOD, then to add .1 mL of the ISTD solution to 5 mL of MeOD w/ carene nitrate. The MW of the ISTD is 191.45 g/mol. 
+
+```{r}
+ISTD_MW <- 191.45 #(g/mol)
+dilution_factor <- .1/6.1# volume of ISTD added over total volume of sample (no units: mL/mL)
+
+methanolysis_data_conc <- methanolysis_data %>% mutate(
+  ISTD_conc = ISTD_mg_mL/ISTD_MW*dilution_factor*1000)%>% #(mmol/L) Note: mg/mL=g/L, the 1000 is to convert M into mM
+  select(-ISTD_mg_mL) #removing no longer necessary column
+
+remove(dilution_factor, ISTD_MW, methanolysis_data) #cleaning environment
+
+methanolysis_data_conc
+```
+Step #3: Correcting integration by ISTD 
+
+```{r}
+methanolysis <- methanolysis_data_conc %>% 
+  mutate(integral_mM= integral*ISTD_conc/ISTD)%>%
+  select(-ISTD,-ISTD_conc,-integral)%>%
+  group_by(assignment)
+
+remove(methanolysis_data_conc)
+```
+
+
+Step 1: make a simple ggplot coordinate system
+
+```{r}
+img <- image_read("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/images/NMR_assignments.png")
+
+image <- image_fill(img, 'none')
+raster <- as.raster(image)
+```
+
+Trying the method listed in R for Data Science on pages 377-379
+
+```{r}
+methanolysis_product <- methanolysis %>%
+  mutate(ln_conc = log(integral_mM),inverse_conc =1/integral_mM)%>%
+  rename(zero = integral_mM, first = ln_conc, second = inverse_conc)%>%
+  gather(zero , first, second , key="order", value="integral_mM")
+
+methanolysis_product$order = factor(methanolysis_product$order, levels = c("zero","first","second"), labels= c("Zeroth Order (mM)", "First Order (ln(mM))", "Second Order (1/mM)"))
+methanolysis_product$assignment = factor(methanolysis_product$assignment, levels = c("SM_A","SM_B"), labels = c("Proton Assignment A", "Proton Assignment B"))
+
+ggplot(filter(methanolysis_product, assignment!="product"), aes(time_s, integral_mM))+
+  geom_line()+ 
+  facet_grid(cols = vars(assignment), rows=vars(order), scales = "free_y", as.table=TRUE)+
+  theme_bw()+
+  labs(x="Time (s)", y="Concentration")
+
+```
+These graphs show that the reaction is first order!! WOOO!
+
+```{r}
+methanolysis2 <- methanolysis%>%
+  mutate(log_conc=log(integral_mM))
+
+SM_A_model <- lm(log_conc~time_s, data=subset(methanolysis2, assignment=="SM_A"))
+grid_A <- subset(methanolysis2, assignment=="SM_A")%>%
+  data_grid(time_s) %>%
+  add_predictions(SM_A_model, "log_conc")%>%
+  mutate(integral_mM=exp(log_conc))
+
+SM_B_model <- lm(log_conc~time_s, data=subset(methanolysis2, assignment=="SM_B"))
+grid_B <- subset(methanolysis2, assignment=="SM_B")%>%
+  data_grid(time_s) %>%
+  add_predictions(SM_B_model, "log_conc")%>%
+  mutate(integral_mM=exp(log_conc))
+
+A_slope <- SM_A_model$coefficients[2]
+A_intercept <- SM_A_model$coefficients[1]
+B_slope <- SM_B_model$coefficients[2]
+B_intercept <- SM_B_model$coefficients[1]
+
+summary(SM_B_model)
+slope <- rbind(A_slope, B_slope)
+intercept <- rbind(A_intercept, B_intercept)
+data.frame(slope, intercept)
+```
+
+```{r}
+mplt <- ggplot(methanolysis, aes(time_s,integral_mM,color=assignment))+
+  geom_point(size=1)+ 
+  labs(x="Time (s)", 
+       y="Concentration (mM)", 
+       title="Trial #1 Carene Nitrate Methanolysis: RKL-04-35")+
+  theme_bw()+ 
+  annotate("text", x=1400,y=.6, label=expression('[A]'[t]*'=[A]'[0]*'e'^{'-6.4E-4'*t}))+
+  scale_color_manual(values=c("#FFC107", "#004D40", "#1E88E5"), 
+                       name="Proton Assignment",
+                       breaks=c("product", "SM_A", "SM_B"),
+                       labels=c(expression(H[C]), expression(H[A]), expression(H[B])))+
+  theme(legend.position = "none")+
+  annotation_raster(raster,2000, 4000,.40, 0.759)+
+  geom_line(data=grid_A,color="#004D40")+
+  geom_line(data=grid_B,color="#1E88E5")
+```
+
+
+```{r}
+save_plot("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/images/plots/RKL-04-35zg2d.jpg", mplt)
+rm(list=ls()) 
+```
+
