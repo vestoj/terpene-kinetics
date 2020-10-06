@@ -28,7 +28,7 @@ Note: the internal standard used was 1-Bromo-4-chlorobenzene, the procedure was 
 
 ```{r}
 ISTD_MW <- 191.45 #(g/mol)
-dilution_factor <- .1/6.1# volume of ISTD added over total volume of sample (no units: mL/mL)
+dilution_factor <- .1/.6# volume of ISTD added over total volume of sample (no units: mL/mL)
 
 methanolysis_data_conc <- methanolysis_data %>% mutate(
   ISTD_conc = ISTD_mg_mL/ISTD_MW*dilution_factor*1000)%>% #(mmol/L) Note: mg/mL=g/L, the 1000 is to convert M into mM
@@ -119,7 +119,7 @@ mplt <- ggplot(methanolysis, aes(time_s,integral_mM,color=assignment))+
                        breaks=c("product", "SM_A", "SM_B"),
                        labels=c(expression(H[C]), expression(H[A]), expression(H[B])))+
   theme(legend.position = "none")+
-  annotation_raster(raster,2000, 4000,.40, 0.759)+
+  annotation_raster(raster,2000, 4000,4.0, 7.59)+
   geom_line(data=grid_A,color="#004D40")+
   geom_line(data=grid_B,color="#1E88E5")
 ```
