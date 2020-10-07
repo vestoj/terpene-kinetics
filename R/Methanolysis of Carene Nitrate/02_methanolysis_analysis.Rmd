@@ -120,10 +120,64 @@ mplt <- ggplot(methanolysis, aes(time_s,integral_mM,color=assignment))+
   annotation_raster(raster,2700, 3900,7.5, 10)+
   geom_line(data=grid_A,color="#004D40")+
   geom_line(data=grid_B,color="#1E88E5")
+```
 
+```{r}
+t50 <-1250 #estimated for now, maybe find precise later.
+
+methanolysis_t5 <- methanolysis%>%
+  filter(time_s<t50)
+
+methanolysis_t5
+```
+```{r}
+methanolysis2_t5 <- methanolysis_t5%>%
+  mutate(log_conc=log(integral_mM))
+
+SM_A_model_t5 <- lm(log_conc~time_s, data=subset(methanolysis2_t5, assignment=="SM_A"))
+grid_A_t5 <- subset(methanolysis2_t5, assignment=="SM_A")%>%
+  data_grid(time_s) %>%
+  add_predictions(SM_A_model_t5, "log_conc")%>%
+  mutate(integral_mM=exp(log_conc))
+
+SM_B_model_t5 <- lm(log_conc~time_s, data=subset(methanolysis2_t5, assignment=="SM_B"))
+grid_B_t5 <- subset(methanolysis2_t5, assignment=="SM_B")%>%
+  data_grid(time_s) %>%
+  add_predictions(SM_B_model_t5, "log_conc")%>%
+  mutate(integral_mM=exp(log_conc))
+
+A_slope_t5 <- SM_A_model_t5$coefficients[2]
+A_intercept_t5 <- SM_A_model_t5$coefficients[1]
+B_slope_t5 <- SM_B_model_t5$coefficients[2]
+B_intercept_t5 <- SM_B_model_t5$coefficients[1]
+
+summary(SM_B_model_t5)
+slope_t5 <- rbind(A_slope_t5, B_slope_t5)
+intercept_t5 <- rbind(A_intercept_t5, B_intercept_t5)
+data.frame(slope_t5, intercept_t5)
+```
+
+```{r}
+
+mplt <- ggplot(methanolysis_t5, aes(time_s,integral_mM,color=assignment))+
+  geom_point(size=1)+ 
+  labs(x="Time (s)", 
+       y="Concentration (mM)", 
+       title="Trial #2 Carene Nitrate Methanolysis: JIV-01-05zg2d")+
+  theme_bw()+ 
+  annotate("text", x=500,y=6, label=expression('[A]'[t]*'=[A]'[0]*'e'^{'-6.8E-4'*t}))+
+  scale_color_manual(values=c("#FFC107", "#004D40", "#1E88E5"), 
+                       name="Proton Assignment",
+                       breaks=c("product", "SM_A", "SM_B"),
+                       labels=c(expression(H[C]), expression(H[A]), expression(H[B])))+
+  theme(legend.position = "none")+
+  annotation_raster(raster,900, 1300,7.5, 10.5)+
+  geom_line(data=grid_A_t5,color="#004D40")+
+  geom_line(data=grid_B_t5,color="#1E88E5")
+mplt
 ```
 
 ```{r}
 save_plot("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/images/plots/JIV-01-05zg2d.jpg", mplt)
-rm(list=ls()) 
+#rm(list=ls()) 
 ```

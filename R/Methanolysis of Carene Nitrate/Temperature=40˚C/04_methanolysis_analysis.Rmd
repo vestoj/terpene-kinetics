@@ -17,7 +17,7 @@ library(grid)
 Step #1 import data
 
 ```{r, message=FALSE}
-methanolysis_data <- read_csv("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/data/RKL-04-35zg2d.csv")
+methanolysis_data <- read_csv("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/data/AH-01-15zg2d.csv")
 #note make sure to confirm the path each time!
 methanolysis_data
 ```
@@ -111,23 +111,23 @@ mplt <- ggplot(methanolysis, aes(time_s,integral_mM,color=assignment))+
   geom_point(size=1)+ 
   labs(x="Time (s)", 
        y="Concentration (mM)", 
-       title="Trial #1 Carene Nitrate Methanolysis: RKL-04-35")+
+       title="Trial #4 Carene Nitrate Methanolysis: AH-01-15zg2d")+
   theme_bw()+ 
-  annotate("text", x=1400,y=.6, label=expression('[A]'[t]*'=[A]'[0]*'e'^{'-6.4E-4'*t}))+
+  annotate("text", x=4000,y=7.5, label=expression('[A]'[t]*'=[A]'[0]*'e'^{'-1.9E-4'*t}))+
   scale_color_manual(values=c("#FFC107", "#004D40", "#1E88E5"), 
                        name="Proton Assignment",
                        breaks=c("product", "SM_A", "SM_B"),
                        labels=c(expression(H[C]), expression(H[A]), expression(H[B])))+
   theme(legend.position = "none")+
-  annotation_raster(raster,2000, 4000,4.0, 7.59)+
+  annotation_raster(raster,6000, 8500,5.0, 7.59)+
   geom_line(data=grid_A,color="#004D40")+
   geom_line(data=grid_B,color="#1E88E5")
+mplt
 ```
 
 
 
 ```{r}
-save_plot("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/images/plots/RKL-04-35zg2d.jpg", mplt)
+save_plot("/Users/jamesvesto/R-Studio Files/Projects/terpene-kinetics/images/plots/AH-01-15zg2d.jpg", mplt)
 rm(list=ls()) 
 ```
-
